@@ -22,6 +22,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import io.gravitee.definition.model.Endpoint;
 import io.gravitee.definition.model.EndpointGroup;
+import io.gravitee.el.TemplateVariableProvider;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.handler.Handler;
@@ -42,7 +43,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Properties;
 import java.util.Set;
 
@@ -66,12 +67,18 @@ public class DubboProxyConnection implements ProxyConnection {
 
     private String dubboUri;
 
+    private ApiTemplateVariableProvider getApiTemplateVariableProvider(ExecutionContext context) {
+        Collection<TemplateVariableProvider> coll = ((ReactableExecutionContext) context).getProviders();
+        return coll.stream().filter(e -> e instanceof ApiTemplateVariableProvider).map(e -> (ApiTemplateVariableProvider) e).findAny().orElse(null);
+    }
+
     public DubboProxyConnection(ExecutionContext executionContext,
                                 DubboPolicyConfiguration configuration,
                                 DubboConnectionManager manager) {
         this.configuration = configuration;
         this.manager = manager;
-        Api api = ((ApiTemplateVariableProvider) ((ArrayList) ((ReactableExecutionContext) executionContext).getProviders()).get(2)).getApi();
+        ApiTemplateVariableProvider apiTemplateVariableProvider = getApiTemplateVariableProvider(executionContext);
+        Api api = apiTemplateVariableProvider.getApi();
         Set<EndpointGroup> groups = api.getProxy().getGroups();
         groups.forEach(item -> {
             Set<Endpoint> endpoints = item.getEndpoints();

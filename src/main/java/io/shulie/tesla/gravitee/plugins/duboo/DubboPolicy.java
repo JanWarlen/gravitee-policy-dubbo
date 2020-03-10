@@ -18,6 +18,7 @@ package io.shulie.tesla.gravitee.plugins.duboo;
 import com.alibaba.fastjson.JSONObject;
 import io.gravitee.definition.model.Path;
 import io.gravitee.definition.model.Rule;
+import io.gravitee.el.TemplateVariableProvider;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -28,6 +29,7 @@ import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.annotations.OnRequest;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -46,9 +48,15 @@ public class DubboPolicy {
         this.configuration = configuration;
     }
 
+    private ApiTemplateVariableProvider getApiTemplateVariableProvider(ExecutionContext context) {
+        Collection<TemplateVariableProvider> coll = ((ReactableExecutionContext) context).getProviders();
+        return coll.stream().filter(e -> e instanceof ApiTemplateVariableProvider).map(e -> (ApiTemplateVariableProvider) e).findAny().orElse(null);
+    }
+
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        Api api = ((ApiTemplateVariableProvider) ((ArrayList) ((ReactableExecutionContext) executionContext).getProviders()).get(2)).getApi();
+        ApiTemplateVariableProvider apiTemplateVariableProvider = getApiTemplateVariableProvider(executionContext);
+        Api api = apiTemplateVariableProvider.getApi();
         Map<String, Path> paths = api.getPaths();
         for (Map.Entry<String, Path> stringPathEntry : paths.entrySet()) {
             Path value = stringPathEntry.getValue();
